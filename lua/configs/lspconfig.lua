@@ -8,6 +8,9 @@ vim.lsp.config("*", { capabilities = capabilities })
 local mason_roslyn = vim.fs.joinpath(vim.fn.stdpath "data", "mason", "bin", "roslyn-language-server.cmd")
 local roslyn = {
   capabilities = capabilities,
+  cmd_env = {
+    Configuration = vim.env.Configuration or "Debug",
+  },
   settings = {
     ["csharp|inlay_hints"] = {
       csharp_enable_inlay_hints_for_implicit_object_creation = true,
@@ -19,6 +22,7 @@ local roslyn = {
 if vim.fn.executable(mason_roslyn) == 1 then
   roslyn.cmd = { mason_roslyn, "--stdio" }
 end
+-- merge only our fields; keep roslyn.nvim handlers/on_init/root_dir from lsp/roslyn.lua
 vim.lsp.config("roslyn", roslyn)
 
 -- roslyn.nvim on_init is a list; it replaces NvChad * on_init, so tokens stay on.

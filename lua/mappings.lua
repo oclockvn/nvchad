@@ -22,4 +22,17 @@ map("n", "<leader>o", function()
 end, { desc = "document symbols" })
 map("n", "gi", vim.lsp.buf.implementation, { desc = "LSP go to implementation" })
 
+local function lsp_or_warn(fn, label)
+  return function()
+    if not vim.lsp.get_clients({ bufnr = 0, name = "roslyn" })[1] then
+      vim.notify("Roslyn not ready. Wait a few sec or :Roslyn target", vim.log.levels.WARN)
+      return
+    end
+    fn()
+  end
+end
+
+map("n", "gd", lsp_or_warn(vim.lsp.buf.definition, "definition"), { desc = "LSP go to definition" })
+map("n", "gr", lsp_or_warn(vim.lsp.buf.references, "references"), { desc = "LSP references" })
+
 -- map({ "n", "i", "v" }, "<C-s>", "<cmd> w <cr>")

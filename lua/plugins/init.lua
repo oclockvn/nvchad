@@ -1,26 +1,51 @@
 return {
   { import = "nvchad.blink.lazyspec" },
 
-  {
-    "stevearc/conform.nvim",
-    opts = require "configs.conform",
-  },
+  -- P3: not needed for .NET
+  { "stevearc/conform.nvim", enabled = false },
+  { "nvzone/minty", enabled = false },
+  { "nvzone/volt", enabled = false },
+  { "nvzone/menu", enabled = false },
+  { "lewis6991/gitsigns.nvim", enabled = false },
+
+  -- P4: lean snippets — Roslyn covers C# completion
+  { "L3MON4D3/LuaSnip", enabled = false },
+  { "rafamadriz/friendly-snippets", enabled = false },
 
   {
     "neovim/nvim-lspconfig",
-    dependencies = { "seblyng/roslyn.nvim" },
+    dependencies = {
+      {
+        "seblyng/roslyn.nvim",
+        -- broad_search: find .sln under git root. Without it, no sln → FileBasedPrograms
+        -- (Temp\roslyn-canonical-misc\Canonical.csproj) and "unresolved dependencies".
+        opts = {
+          broad_search = true,
+          choose_target = function(targets)
+            local csproj = require("roslyn.sln.discovery").find_project(vim.api.nvim_get_current_buf())
+            if not csproj then
+              return targets[1]
+            end
+            local sln_api = require "roslyn.sln.api"
+            for _, target in ipairs(targets) do
+              if sln_api.exists_in_target(target, csproj) then
+                return target
+              end
+            end
+            return nil -- no sln owns this csproj → project/open mode
+          end,
+        },
+      },
+    },
     config = function()
       require "configs.lspconfig"
     end,
   },
 
-  -- broad_search: find .sln under git root. Without it, no sln → FileBasedPrograms
-  -- (Temp\roslyn-canonical-misc\Canonical.csproj) and "unresolved dependencies".
-  { "seblyng/roslyn.nvim", opts = { broad_search = true } },
-
   {
     "mason-org/mason.nvim",
-    lazy = false, -- installer needs registry before Roslyn starts
+    event = "VeryLazy",
+    cmd = { "Mason", "MasonInstall", "MasonUpdate" },
     opts = function()
       local opts = require "nvchad.configs.mason"
       opts.registries = {
@@ -33,38 +58,24 @@ return {
 
   {
     "WhoIsSethDaniel/mason-tool-installer.nvim",
-    lazy = false, -- NvChad defaults.lazy=true; no event = never ran, roslyn never installed
+    event = "VeryLazy",
     dependencies = { "mason-org/mason.nvim" },
     opts = {
-      ensure_installed = { "roslyn", "netcoredbg" },
+      ensure_installed = { "roslyn" },
     },
-  },
-
-  {
-    "mfussenegger/nvim-dap",
-    ft = { "cs", "razor" },
-    keys = {
-      { "<F5>", function() require("dap").continue() end, desc = "DAP Continue" },
-      { "<F9>", function() require("dap").toggle_breakpoint() end, desc = "DAP Toggle Breakpoint" },
-      { "<F10>", function() require("dap").step_over() end, desc = "DAP Step Over" },
-      { "<F11>", function() require("dap").step_into() end, desc = "DAP Step Into" },
-    },
-    dependencies = { "rcarriga/nvim-dap-ui", "nvim-neotest/nvim-nio" },
-    config = function()
-      require("configs.dap")()
-    end,
   },
 
   {
     "nvim-treesitter/nvim-treesitter",
-    init = function()
-      -- ponytail: Windows parser builds need a real compiler on PATH
-      require("nvim-treesitter.install").compilers = { "clang", "cl", "gcc" }
-    end,
     opts = function()
       local opts = require "nvchad.configs.treesitter"
-      vim.list_extend(opts.ensure_installed, { "c_sharp", "xml", "json", "yaml", "markdown" })
+      opts.ensure_installed = { "c_sharp", "xml" }
       return opts
+    end,
+    config = function(_, opts)
+      -- ponytail: Windows parser builds need a real compiler on PATH
+      require("nvim-treesitter.install").compilers = { "clang", "cl", "gcc" }
+      require("nvim-treesitter").setup(opts)
     end,
   },
 
@@ -72,6 +83,8 @@ return {
     "saghen/blink.cmp",
     opts = function()
       local opts = require "nvchad.blink.config"
+      opts.snippets = { preset = "default" } -- vim.snippet; no LuaSnip dep
+      opts.sources = { default = { "lsp", "buffer", "path" } }
       opts.keymap = vim.tbl_extend("force", opts.keymap or {}, {
         -- Windows terminals send Ctrl+Space as <C-@>/<Nul>
         ["<C-space>"] = { "show", "show_documentation", "hide_documentation" },
