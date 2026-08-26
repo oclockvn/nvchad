@@ -14,46 +14,37 @@ return {
 
   {
     "neovim/nvim-lspconfig",
-    dependencies = {
-      {
-        "seblyng/roslyn.nvim",
-        -- broad_search: find .sln under git root. Without it, no sln → FileBasedPrograms
-        -- (Temp\roslyn-canonical-misc\Canonical.csproj) and "unresolved dependencies".
-        opts = {
-          broad_search = true,
-          choose_target = function(targets)
-            local csproj = require("roslyn.sln.discovery").find_project(vim.api.nvim_get_current_buf())
-            if not csproj then
-              return targets[1]
-            end
-            local sln_api = require "roslyn.sln.api"
-            for _, target in ipairs(targets) do
-              if sln_api.exists_in_target(target, csproj) then
-                return target
-              end
-            end
-            return nil -- no sln owns this csproj → project/open mode
-          end,
-        },
-      },
-    },
     config = function()
       require "configs.lspconfig"
     end,
+  },
+
+  -- C#/Razor: Roslyn LSP + Razor HTML cohosting bridge, self-managed as
+  -- dotnet global tools (bypasses the broken Crashdummyy/mason-registry
+  -- "roslyn" package entirely). Requires:
+  --   dotnet tool install -g EasyDotnet
+  --   npm install -g vscode-langservers-extracted   (Razor HTML bridge)
+  -- Debugger/test-runner features intentionally left unused (lsp only).
+  {
+    "GustavEikaas/easy-dotnet.nvim",
+    ft = { "cs", "razor", "cshtml", "fsproj", "csproj", "sln", "slnx" },
+    dependencies = { "nvim-lua/plenary.nvim", "nvim-telescope/telescope.nvim" },
+    opts = {
+      lsp = {
+        enabled = true,
+        razor = {
+          enabled = true,
+          html = { enabled = true },
+        },
+      },
+      picker = "telescope",
+    },
   },
 
   {
     "mason-org/mason.nvim",
     event = "VeryLazy",
     cmd = { "Mason", "MasonInstall", "MasonUpdate" },
-    opts = function()
-      local opts = require "nvchad.configs.mason"
-      opts.registries = {
-        "github:mason-org/mason-registry",
-        "github:Crashdummyy/mason-registry",
-      }
-      return opts
-    end,
   },
 
   {
@@ -61,7 +52,7 @@ return {
     event = "VeryLazy",
     dependencies = { "mason-org/mason.nvim" },
     opts = {
-      ensure_installed = { "roslyn" },
+      ensure_installed = {},
     },
   },
 
