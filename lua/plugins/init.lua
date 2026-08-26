@@ -14,10 +14,13 @@ return {
     end,
   },
 
-  { "seblyng/roslyn.nvim", opts = {} },
+  -- broad_search: find .sln under git root. Without it, no sln → FileBasedPrograms
+  -- (Temp\roslyn-canonical-misc\Canonical.csproj) and "unresolved dependencies".
+  { "seblyng/roslyn.nvim", opts = { broad_search = true } },
 
   {
     "mason-org/mason.nvim",
+    lazy = false, -- installer needs registry before Roslyn starts
     opts = function()
       local opts = require "nvchad.configs.mason"
       opts.registries = {
@@ -30,6 +33,7 @@ return {
 
   {
     "WhoIsSethDaniel/mason-tool-installer.nvim",
+    lazy = false, -- NvChad defaults.lazy=true; no event = never ran, roslyn never installed
     dependencies = { "mason-org/mason.nvim" },
     opts = {
       ensure_installed = { "roslyn", "netcoredbg" },
@@ -38,6 +42,13 @@ return {
 
   {
     "mfussenegger/nvim-dap",
+    ft = { "cs", "razor" },
+    keys = {
+      { "<F5>", function() require("dap").continue() end, desc = "DAP Continue" },
+      { "<F9>", function() require("dap").toggle_breakpoint() end, desc = "DAP Toggle Breakpoint" },
+      { "<F10>", function() require("dap").step_over() end, desc = "DAP Step Over" },
+      { "<F11>", function() require("dap").step_into() end, desc = "DAP Step Into" },
+    },
     dependencies = { "rcarriga/nvim-dap-ui", "nvim-neotest/nvim-nio" },
     config = function()
       require("configs.dap")()
