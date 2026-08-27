@@ -36,3 +36,19 @@ map("n", "gd", lsp_or_warn(vim.lsp.buf.definition, "definition"), { desc = "LSP 
 map("n", "gr", lsp_or_warn(vim.lsp.buf.references, "references"), { desc = "LSP references" })
 
 -- map({ "n", "i", "v" }, "<C-s>", "<cmd> w <cr>")
+
+-- Terminal: toggle (hide, don't close) a persistent horizontal term
+map({ "n", "t" }, "<A-i>", function()
+  require("nvchad.term").toggle { pos = "sp", id = "htoggleTerm" }
+end, { desc = "terminal toggle horizontal" })
+
+map({ "n", "t" }, "<A-v>", function()
+  require("nvchad.term").toggle { pos = "vsp", id = "vtoggleTerm" }
+end, { desc = "terminal toggle vertical" })
+
+map({ "n", "t" }, "<A-f>", function()
+  require("nvchad.term").toggle { pos = "float", id = "floatTerm" }
+end, { desc = "terminal toggle floating" })
+
+-- escape terminal mode
+map("t", "<Esc>", "<C-\\><C-n>", { desc = "terminal escape to normal mode" })
