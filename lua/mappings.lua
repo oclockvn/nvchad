@@ -37,6 +37,11 @@ map("n", "gr", lsp_or_warn(vim.lsp.buf.references, "references"), { desc = "LSP 
 
 -- map({ "n", "i", "v" }, "<C-s>", "<cmd> w <cr>")
 
+-- Live grep with rg args inline (e.g. "pattern -t cs" or "pattern -- -tcs")
+map("n", "<leader>fa", function()
+  require("telescope").extensions.live_grep_args.live_grep_args()
+end, { desc = "telescope live grep (args)" })
+
 -- Terminal: toggle (hide, don't close) a persistent horizontal term
 map({ "n", "t" }, "<A-i>", function()
   require("nvchad.term").toggle { pos = "sp", id = "htoggleTerm" }
