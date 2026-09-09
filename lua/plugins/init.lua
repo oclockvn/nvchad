@@ -49,6 +49,61 @@ return {
     end,
   },
 
+  -- Perf: large repos. NvChad ships telescope with the pure-Lua fuzzy sorter,
+  -- which re-scores every candidate on every keystroke (hundreds of ms on
+  -- Windows once the file list is big). Native fzf sorter = ~10-50x faster.
+  -- Build needs `make` + a C compiler on PATH. gcc via WinLibs:
+  --   winget install BrechtSanders.WinLibs.POSIX.UCRT
+  { "nvim-telescope/telescope-fzf-native.nvim", build = "make", lazy = true },
+
+  -- Trim the candidate set + kill preview jank in big .NET trees, and swap in
+  -- the native fzf sorter. Own `config` so the extension loads with telescope
+  -- (fzf-native has no lazy trigger of its own).
+  {
+    "nvim-telescope/telescope.nvim",
+    dependencies = { "nvim-telescope/telescope-fzf-native.nvim" },
+    opts = function(_, opts)
+      opts.defaults = opts.defaults or {}
+      opts.defaults.file_ignore_patterns = {
+        "%.git[/\\]",
+        "[/\\]bin[/\\]",
+        "[/\\]obj[/\\]",
+        "node_modules",
+        "%.vs[/\\]",
+        "%.g%.cs$",
+      }
+      opts.defaults.path_display = { "truncate" }
+      -- regex highlight is cheap; treesitter re-parse on every selection move is not
+      opts.defaults.preview = vim.tbl_extend("force", opts.defaults.preview or {}, {
+        treesitter = false,
+        filesize_limit = 1, -- MB; skip preview for huge generated files
+      })
+      opts.pickers = vim.tbl_deep_extend("force", opts.pickers or {}, {
+        find_files = {
+          find_command = { "fd", "--type", "f", "--strip-cwd-prefix", "--color", "never" },
+        },
+      })
+      opts.extensions = vim.tbl_deep_extend("force", opts.extensions or {}, {
+        fzf = {
+          fuzzy = true,
+          override_generic_sorter = true,
+          override_file_sorter = true,
+        },
+      })
+      return opts
+    end,
+    config = function(_, opts)
+      local telescope = require "telescope"
+      telescope.setup(opts)
+      local dir = require("lazy.core.config").plugins["telescope-fzf-native.nvim"].dir
+      if vim.fn.glob(dir .. "/build/libfzf.*") ~= "" then
+        pcall(telescope.load_extension, "fzf")
+      else
+        vim.notify("telescope-fzf-native not built - run :Lazy build telescope-fzf-native.nvim", vim.log.levels.WARN)
+      end
+    end,
+  },
+
   {
     "mason-org/mason.nvim",
     event = "VeryLazy",
