@@ -52,9 +52,22 @@ return {
   -- Perf: large repos. NvChad ships telescope with the pure-Lua fuzzy sorter,
   -- which re-scores every candidate on every keystroke (hundreds of ms on
   -- Windows once the file list is big). Native fzf sorter = ~10-50x faster.
-  -- Build needs `make` + a C compiler on PATH. gcc via WinLibs:
+  -- Build needs CMake + a C compiler on PATH. gcc via WinLibs:
   --   winget install BrechtSanders.WinLibs.POSIX.UCRT
-  { "nvim-telescope/telescope-fzf-native.nvim", build = "make", lazy = true },
+  -- CMake (not `make`): the Makefile's Windows-native branch runs
+  -- `cmd /C mkdir build`, which returns nonzero when build/ already exists
+  -- (stale dir from a prior run) and aborts before compiling. CMake
+  -- reconfigures an existing build dir without complaint.
+  {
+    "nvim-telescope/telescope-fzf-native.nvim",
+    -- `-G "MinGW Makefiles"`: CMake otherwise defaults to the NMake/VS
+    -- generator on Windows and fails ("nmake: no such file"). This box
+    -- has WinLibs gcc + mingw32-make, no MSVC.
+    build = 'cmake -S. -Bbuild -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release '
+      .. "&& cmake --build build --config Release "
+      .. "&& cmake --install build --prefix build",
+    lazy = true,
+  },
 
   -- Trim the candidate set + kill preview jank in big .NET trees, and swap in
   -- the native fzf sorter. Own `config` so the extension loads with telescope
