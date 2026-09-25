@@ -7,7 +7,16 @@ return {
   { "nvzone/volt", enabled = false },
   { "nvzone/menu", enabled = false },
   { "lewis6991/gitsigns.nvim", enabled = false },
-  { "nvim-tree/nvim-tree.lua", opts = { git = { enable = false } } },
+  {
+    "nvim-tree/nvim-tree.lua",
+    opts = {
+      git = { enable = false },
+      view = {
+        adaptive_size = true,
+        width = { min = 50 },
+      },
+    },
+  },
 
   -- P4: lean snippets — Roslyn covers C# completion
   { "L3MON4D3/LuaSnip", enabled = false },
